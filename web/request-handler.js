@@ -7,7 +7,24 @@ var httpHelpers = require('./http-helpers.js');
 // require more modules/folders here!
 
 exports.handleRequest = function (req, res) {
-  var uri = url.parse(req.url).pathname;
+  if (req.method==="GET") {
+    httpHelpers.GET(req,res);
+  }
+  else if (req.method==="POST") {
+    httpHelpers.collectData(req, function(data) {
+      console.log(data);
+    });
+    httpHelpers.POST(req,res);
+  }
+  else if (req.method==="OPTIONS") {
+    httpHelpers.OPTIONS(req,res);
+  }
+
+
+
+
+
+  //var uri = url.parse(req.url).pathname;
 
   //if req.method === get
     //httpHelpers.get(req,res)
@@ -21,5 +38,5 @@ exports.handleRequest = function (req, res) {
 
 
 
-  res.end(archive.paths.list);
+  //res.end(archive.paths.list);
 };
