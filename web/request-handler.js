@@ -11,32 +11,11 @@ exports.handleRequest = function (req, res) {
     httpHelpers.GET(req,res);
   }
   else if (req.method==="POST") {
-    httpHelpers.collectData(req, function(data) {
-      console.log(data);
-    });
     httpHelpers.POST(req,res);
   }
   else if (req.method==="OPTIONS") {
     httpHelpers.OPTIONS(req,res);
   }
 
-
-
-
-
-  //var uri = url.parse(req.url).pathname;
-
-  //if req.method === get
-    //httpHelpers.get(req,res)
-
-  // else if (post)
-    //httpHelpers.post(req,res)
-
-  // else (options)
-    // httphelpers.options
-
-
-
-
-  //res.end(archive.paths.list);
+  // res.end(archive.paths.list);
 };

@@ -1,7 +1,8 @@
 var fs = require('fs');
 var path = require('path');
 var _ = require('underscore');
-var htmlfetcher = require('../workers/htmlfetcher');
+var request = require('request');
+// var htmlfetcher = require('../workers/htmlfetcher');
 
 /*
  * You will need to reuse the same paths many times over in the course of this sprint.
@@ -53,7 +54,11 @@ exports.isUrlInList = function(url, callback){
 exports.addUrlToList = function(url, callback){
   var cb = function(bool) {
     if (!bool) {
-      fs.appendFile(exports.paths.list, url, callback);
+      var urlString = url.toString() + '\r\n';
+      console.log(urlString);
+      fs.appendFile(exports.paths.list, urlString, function (err, file) {
+        callback();
+      });
     } else {
       //console.log(url + " in list.");
     }
@@ -75,10 +80,10 @@ exports.isUrlArchived = function(url, callback){
 };
 
 exports.downloadUrls = function(urlArray){
-  //take input filepath / filename
-  //write file to exports.paths.archivedSites
   _.each(urlArray, function(item) {
-    fs.writeFile(exports.paths.archivedSites + '/' + item, item);
+    if (!item) { return; }
+    request('http://' + item)
+    .pipe(fs.createWriteStream(exports.paths.archivedSites + "/" + item));
   });
 
 };

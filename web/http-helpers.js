@@ -2,9 +2,9 @@ var path = require('path');
 var fs = require('fs');
 var archive = require('../helpers/archive-helpers');
 var http = require('http');
-var url = require('url');
+var urlParser = require('url');
 
-exports.headers = headers = {
+var headers = headers = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET, POST, PUT, DELETE, OPTIONS",
   "access-control-allow-headers": "content-type, accept",
@@ -13,51 +13,69 @@ exports.headers = headers = {
 };
 
 exports.serveAssets = function(res, asset, callback) {
-  // Write some code here that helps serve up your static files!
-  // (Static files are things like html (yours or archived from others...),
-  // css, or anything that doesn't change often.)
-  //
-
-
-
+  var encoding = {encoding: "utf8"};
+  fs.readFile(archive.paths.siteAssets + asset, encoding, function (err, data) {
+    if (err) {
+      fs.readFile(archive.paths.archivedSites + asset, encoding, function (err, data) {
+        if (err) {
+          callback ? callback() : exports.sendResponse(res, "File Not Found", 404);
+        } else {
+          exports.sendResponse(res, data);
+        }
+      });
+    } else {
+      exports.sendResponse(res, data);
+    }
+  });
 };
 
+exports.sendRedirect = function (res,location,statusCode) {
+  statusCode = statusCode || 302;
+  res.writeHead(statusCode,{ Location: location });
+  res.end();
+}
 
 exports.GET = function (req,res) {
-  //Serve index.html
-  var filename = archive.paths.siteAssets + '/index.html';
-  var fileStream = fs.createReadStream(filename);
-  fileStream.pipe(res);
+  var parts = urlParser.parse(req.url);
+  var urlPath = parts.pathname === '/' ? '/index.html' : parts.pathname;
+  exports.serveAssets(res, urlPath, function () {
+    archive.isUrlInList(urlPath, function(found) {
+      if (found) {
+        exports.sendRedirect(res, "/loading.html");
+      } else  {
+        exports.sendResponse(res, "File not found", 404);
+      }
+    })
+  })
 }
+
 
 
 exports.POST = function(req,res) {
   exports.collectData(req, function(data) {
-    if ( archive.isUrlInList(data, function(bool) {
-      console.log(data + " : " + bool);
-    }) ) {
-      //if request url exists in our archive, serve archived html page
-      var filename = archive.paths.archivedSites + '/' + data;
-      var fileStream = fs.createReadStream(filename);
-      // exports.sendStatusCode(res, 404);
-      fileStream.pipe(res);
-    }
-    else {
-      //else, add request url to list
-      archive.addUrlToList(data, function(err) {
-        if (err) throw err;
-      });
-      // and tell htmlfetcher to archive that html page
-
-    }
+    var urlPath = data.split('=')[1];
+    archive.isUrlInList(urlPath, function(found) {
+      if (found) {
+        archive.isUrlArchived(urlPath, function(exists) {
+          if (exists) {
+            exports.sendRedirect(res,"/"+ urlPath);
+          }
+          else {
+            exports.sendRedirect(res,"/loading.html");
+          }
+        })
+      }
+      else {
+        archive.addUrlToList(urlPath,function() {
+          exports.sendRedirect(res,"/loading.html");
+        })
+      }
+    });
   });
-  // var filename = path.join(process.cwd(),uri);
-
-
 }
 
 exports.OPTIONS = function(req,res) {
-  // send 200 status code
+  exports.sendStatusCode(res, 200);
 
 }
 
@@ -73,9 +91,10 @@ exports.collectData = function(req, callback) {
   })
 }
 
-exports.sendStatusCode = function (res, statusCode) {
+exports.sendResponse = function (res, obj, statusCode) {
   var statusCode = statusCode || 200;
-  res.writeHead(res, exports.headers);
+  res.writeHead(statusCode, headers);
+  res.end(obj);
 }
 
 // As you progress, keep thinking about what helper functions you can put here!
